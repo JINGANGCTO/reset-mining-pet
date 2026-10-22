@@ -1,0 +1,151 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  background: transparent;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  cursor: grab;
+}
+
+#pet {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#whale {
+  position: absolute;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  image-rendering: auto;
+  transition: filter 0.2s;
+}
+
+/* 状态动画 */
+#whale.idle {
+  animation: float 3s ease-in-out infinite;
+}
+#whale.mining {
+  animation: wiggle 0.8s ease-in-out infinite;
+}
+#whale.happy {
+  animation: jump 0.5s ease-in-out 3;
+}
+#whale.sad {
+  animation: droop 1.5s ease-in-out infinite;
+  filter: saturate(0.7) brightness(0.9);
+}
+#whale.excited {
+  animation: shake 0.3s linear infinite;
+  filter: brightness(1.15) drop-shadow(0 0 12px #ffd166);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-12px); }
+}
+@keyframes wiggle {
+  0%, 100% { transform: translateX(-50%) rotate(-4deg); }
+  50% { transform: translateX(-50%) rotate(4deg); }
+}
+@keyframes jump {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-28px); }
+}
+@keyframes droop {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(6px) rotate(2deg); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(-50%) translateX(0); }
+  25% { transform: translateX(-50%) translateX(-3px); }
+  75% { transform: translateX(-50%) translateX(3px); }
+}
+
+/* 气泡 */
+#bubble {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  max-width: 220px;
+  background: #fff;
+  color: #333;
+  padding: 6px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  white-space: pre-line;
+  text-align: left;
+}
+#bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: #fff;
+  border-bottom: none;
+}
+#bubble.hidden { display: none; }
+
+/* agent 状态标签 */
+#agent-status {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 11;
+  background: rgba(0, 0, 0, 0.65);
+  color: #bbb;
+  padding: 3px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: 'Segoe UI', monospace;
+  letter-spacing: 0.5px;
+}
+#agent-status.running {
+  color: #7cfc00;
+}
+#agent-status.stopped {
+  color: #fff;
+  background: rgba(180, 0, 0, 0.85);
+  animation: pulse-red 1.2s ease-in-out infinite;
+}
+#agent-status.unknown {
+  color: #bbb;
+}
+@keyframes pulse-red {
+  0%, 100% { background: rgba(180, 0, 0, 0.85); }
+  50% { background: rgba(255, 40, 40, 0.95); }
+}
+
+/* 余额角标 */
+#balance-badge {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffd166;
+  padding: 3px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: 'Segoe UI', monospace;
+  letter-spacing: 0.5px;
+  white-space: pre-line;
+  text-align: center;
+  line-height: 1.5;
+  min-width: 90px;
+}

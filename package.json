@@ -1,0 +1,12 @@
+{
+  "name": "reset-pet",
+  "version": "0.1.0",
+  "description": "RESET 挖矿桌面宠物 - DeepSeek 大肥鱼",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}
