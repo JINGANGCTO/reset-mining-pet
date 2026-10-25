@@ -69,5 +69,6 @@ try {
 console.log('');
 console.log('========== 完成 ==========');
 console.log('以后双击桌面「RESET挖矿」图标 或 本目录 start-pet.vbs 即可开始挖矿。');
-console.log('右键桌宠 → 退出宠物（停止挖矿）可停止。');
-console.log('右键桌宠 → 切换皮肤 可换 Steve / Goku。');
+console.log('双击桌宠角色 = 开/关挖矿；右键 → 退出宠物 可完全停止。');
+console.log('右键 → 切换皮肤（Steve/Goku）、语言（中文/English）。');
+console.log('按 Ctrl+Alt+H 一键隐身（打游戏不挡视线），挖矿照跑。');

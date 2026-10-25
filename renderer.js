@@ -7,12 +7,22 @@ const whale = document.getElementById('whale');
 const bubble = document.getElementById('bubble');
 const badge = document.getElementById('balance-badge');
 
+// —— 多语言（与 main 的 locale 同步）——
+let locale = 'zh';
+
+function tr(key, ...args) {
+  const dict = (window.I18N && (window.I18N[locale] || window.I18N.zh)) || {};
+  const s = dict[key] != null ? dict[key] : key;
+  return String(s).replace(/\{(\d+)\}/g, (m, i) => (args[i] != null ? args[i] : m));
+}
+
 let prevBalance = null;
 let prevStrikes = null;
 let prevVein = null;
 let bubbleTimer = null;
 let latest = null;
 let agentRunning = null; // true=挖矿中 false=已停 null=未知
+let suppressAgentSay = false; // 双击手动切换时抑制重复气泡
 
 let currentSkin = 'steve';
 let currentState = 'idle';
@@ -75,37 +85,54 @@ function switchSkin(key) {
   if (!SKINS[key]) return;
   currentSkin = key;
   setState(currentState);
-  say(`换皮肤啦：${SKINS[key].name} ✨`, 2000);
+  say(tr('say.skin', SKINS[key].name), 2000);
+}
+
+function refreshBadge() {
+  if (!latest) return;
+  badge.textContent = tr('badge.balance', fmt(latest.balance)) + '\n' + tr('badge.deposit', fmt(latest.deposit));
+}
+
+// 语言切换：刷新所有可见文案
+function applyLocale(next) {
+  if (next !== 'zh' && next !== 'en') return;
+  locale = next;
+  document.title = 'reset-pet:' + locale; // 便于用窗口标题核对当前语言
+  refreshStatusLabel();
+  refreshBadge();
 }
 
 function fmt(n) {
   return (isFinite(n) ? n : 0).toFixed(4);
 }
 
+function refreshStatusLabel() {
+  const el = document.getElementById('agent-status');
+  if (!el) return;
+  if (agentRunning === true) {
+    el.textContent = tr('status.mining');
+    el.className = 'running';
+  } else if (agentRunning === false) {
+    el.textContent = tr('status.stopped');
+    el.className = 'stopped';
+  } else {
+    el.textContent = tr('status.unknown');
+    el.className = 'unknown';
+  }
+}
+
 function updateAgentStatus(running) {
   const prev = agentRunning;
   const changed = prev !== running;
   agentRunning = running;
-  const el = document.getElementById('agent-status');
-  if (el) {
-    if (running === true) {
-      el.textContent = '⛏ 挖矿中';
-      el.className = 'running';
-    } else if (running === false) {
-      el.textContent = '⚠ 挖矿已停';
-      el.className = 'stopped';
-    } else {
-      el.textContent = '…';
-      el.className = 'unknown';
-    }
-  }
+  refreshStatusLabel();
   if (!changed) return;
   if (running === false) {
     setState('sad');
-    if (prev !== null) say('挖矿 agent 掉线了！双击 start-reset-miner.bat 启动 😢', 6000);
+    if (prev !== null && !suppressAgentSay) say(tr('say.agentDown'), 6000);
   } else if (running === true) {
     setState(depositState());
-    if (prev !== null) say('挖矿 agent 上线了 ✓', 2500);
+    if (prev !== null && !suppressAgentSay) say(tr('say.agentUp'), 2500);
   }
 }
 
@@ -131,21 +158,21 @@ async function poll() {
 
     latest = { balance, deposit, strikes, fairShare, vein, windowOpen };
 
-    badge.textContent = `余额 ${fmt(balance)} R\n锁仓 ${fmt(deposit)} R`;
+    badge.textContent = tr('badge.balance', fmt(balance)) + '\n' + tr('badge.deposit', fmt(deposit));
 
     if (agentRunning === false) {
       setState('sad');
     } else if (prevBalance === null) {
-      setState('idle');
+      setState(depositState());
     } else if (balance > prevBalance) {
       setState('happy');
-      say(`挖到币了！ +${fmt(balance - prevBalance)} RESET 🎉`);
+      say(tr('say.mined', fmt(balance - prevBalance)));
     } else if (strikes > prevStrikes) {
       setState('sad');
-      say('被罚了……贪心果然不行 😢');
+      say(tr('say.penalty'));
     } else if (vein > prevVein) {
       setState('excited');
-      say('发现矿脉了！！⚡');
+      say(tr('say.vein'));
     } else if (deposit > 0) {
       setState('mining');
     } else {
@@ -164,13 +191,13 @@ function showDetail() {
   if (!latest) return;
   const d = latest;
   const lines = [
-    `🤖 Agent ${agentRunning === true ? '在线挖矿中' : agentRunning === false ? '已停止！' : '检测中…'}`,
-    `💰 余额 ${fmt(d.balance)} R`,
-    `🔒 存款 ${fmt(d.deposit)} R`,
-    `⚖️ 公平份额 ${fmt(d.fairShare)} R`,
-    `⚠️ 惩罚 ${d.strikes} 次`,
-    `⛏️ 挖矿窗口 ${d.windowOpen ? '开启' : '关闭'}`,
-    `💎 矿脉 ${fmt(d.vein)} R`,
+    agentRunning === true ? tr('detail.agentOnline') : agentRunning === false ? tr('detail.agentOffline') : tr('detail.agentChecking'),
+    tr('detail.balance', fmt(d.balance)),
+    tr('detail.deposit', fmt(d.deposit)),
+    tr('detail.fairShare', fmt(d.fairShare)),
+    tr('detail.strikes', d.strikes),
+    d.windowOpen ? tr('detail.windowOpen') : tr('detail.windowClosed'),
+    tr('detail.vein', fmt(d.vein)),
   ];
   say(lines.join('\n'), 5000);
 }
@@ -180,6 +207,7 @@ let dragging = false;
 let moved = false;
 let startX = 0;
 let startY = 0;
+let clickTimer = null;
 
 document.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return;
@@ -203,13 +231,40 @@ document.addEventListener('mousemove', (e) => {
 
 document.addEventListener('mouseup', (e) => {
   if (dragging && !moved && e.target === whale) {
-    setState('happy');
-    showDetail();
-    setTimeout(poll, 2500);
+    if (clickTimer) {
+      // 第二次点击 → 双击：启停挖矿
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      onDoubleClick();
+    } else {
+      // 等 260ms 看有没有第二下
+      clickTimer = setTimeout(() => {
+        clickTimer = null;
+        setState('happy');
+        showDetail();
+        setTimeout(poll, 2500);
+      }, 260);
+    }
   }
   dragging = false;
   moved = false;
 });
+
+// 双击宠物 = 开/关挖矿 agent
+async function onDoubleClick() {
+  if (!window.petAPI || !window.petAPI.toggleAgent) return;
+  suppressAgentSay = true;
+  setTimeout(() => { suppressAgentSay = false; }, 4000);
+  say(tr('say.toggling'), 1500);
+  try {
+    const res = await window.petAPI.toggleAgent();
+    if (res && res.msg) say(res.msg, 3000);
+    else say(tr('say.done'), 2500);
+  } catch (err) {
+    say(tr('say.fail', err && err.message ? err.message : err), 4000);
+  }
+  setTimeout(poll, 3000);
+}
 
 document.addEventListener('contextmenu', (e) => {
   e.preventDefault();
@@ -224,6 +279,14 @@ if (window.petAPI && window.petAPI.onSwitchSkin) {
 // agent 存活状态（IPC 触发）
 if (window.petAPI && window.petAPI.onAgentStatus) {
   window.petAPI.onAgentStatus((running) => updateAgentStatus(running));
+}
+
+// 语言（IPC 触发 + 启动时同步）
+if (window.petAPI && window.petAPI.onSetLocale) {
+  window.petAPI.onSetLocale((loc) => applyLocale(loc));
+}
+if (window.petAPI && window.petAPI.getLocale) {
+  window.petAPI.getLocale().then((loc) => applyLocale(loc)).catch(() => {});
 }
 
 async function init() {

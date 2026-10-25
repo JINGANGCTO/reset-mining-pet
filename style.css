@@ -105,6 +105,8 @@ html, body {
   left: 50%;
   transform: translateX(-50%);
   z-index: 11;
+  white-space: nowrap;
+  width: max-content;
   background: rgba(0, 0, 0, 0.65);
   color: #bbb;
   padding: 3px 12px;
@@ -147,5 +149,6 @@ html, body {
   white-space: pre-line;
   text-align: center;
   line-height: 1.5;
-  min-width: 90px;
+  width: max-content;
+  min-width: 122px;
 }
